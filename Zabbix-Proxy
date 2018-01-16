@@ -1,0 +1,169 @@
+Zabbix Proxy - Linux CentOS
+### Desabilitando o SElinux ###
+
+	vim /etc/selinux/config
+
+	- Modificar para: SELINUX=disabled
+
+	setenforce 0
+
+### Desabilitando o Firewall ###
+
+	systemctl stop firewalld
+	systemctl disable firewalld
+
+### Baixando e Instalando o Repositorio BASE do CentOS 7 ###
+
+	rpm -Uvh http://mirror.centos.org/centos-7/7/os/x86_64/Packages/centos-release-7-4.1708.el7.centos.x86_64.rpm
+
+### Baixando e Instalando o Repositorio EPEL do CentOS 7 ###
+
+	rpm -Uvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+
+### Atualizando o Sistema Operacional ###
+
+	yum update
+
+### Instalando Pré-requisitos de SNMP
+
+	yum -y install net-snmp net-snmp-devel net-snmp-utils
+
+### Instalando Pré-requisitos de Desenvolvimento ###
+
+	yum -y install zlib-devel glibc-devel libcurl-devel automake pkgconfig ncurses libidn2-devel openssl-devel rpm-devel
+
+### Instalando Pré-requisitos específicos do CentOS 7 ###
+
+	yum -y install mlocate OpenIPMI OpenIPMI-libs OpenIPMI-devel libssh2 make fping gcc libevent-devel curl-devel
+
+### Instalando Pré-requisitos do Jabber ###
+
+	yum -y install iksemel iksemel-devel libxml2-devel libxml2
+
+### Instalando Pré-requisitos do Banco de Dados SQLite ###
+
+	yum -y install sqlite-devel sqlite
+
+### Instalando o Zabbix ###
+
+	- Verificar se o usuário existe
+
+		id zabbix
+
+	- Se não existir, criar usuário
+
+		useradd zabbix -s /bin/false
+
+	- Criar e acessar pasta onde ficarão os arquivos baixados
+
+	mkdir /arquivos
+
+		cd /arquivos
+
+	- Baixar última versão do Zabbix
+
+		wget https://ufpr.dl.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.4.1/zabbix-3.4.1.tar.gz
+
+	- Descompactar o código-fonte
+
+		tar zxvf /arquivos/zabbix-3.4.1.tar.gz
+
+	- Acessar pasta criada
+
+		cd /arquivos/zabbix-3.4.1/
+
+	- Instalar o Zabbix 3 (Proxy e Agente)
+
+		./configure --enable-proxy --enable-agent --with-sqlite3 --with-net-snmp --with-libcurl --with-libxml2
+
+		make install
+
+### Criando o Banco de Dados do Zabbix Proxy ###
+
+	- Criar diretório de dados
+
+		mkdir /var/lib/sqlite/
+
+	- Criar tabelas
+
+		sqlite3 /var/lib/sqlite/zabbix.db < /arquivos/zabbix-3.4.1/database/sqlite3/schema.sql
+
+	- Definir permissões
+
+		chown -R zabbix:zabbix /var/lib/sqlite/
+
+### Configurando o Zabbix Proxy ###
+
+	- Local do arquivo de configuração: /usr/local/etc/zabbix_proxy.conf
+
+	- Realizar o backup do arquivo de configuração original
+
+		cp /usr/local/etc/zabbix_proxy.conf /usr/local/etc/zabbix_proxy.conf.ori
+
+	- Acessar arquivo de configuração
+
+		vim /usr/local/etc/zabbix_proxy.conf
+
+	- Modificar parametros de conexão com Banco de Dados:
+
+		DBName=/var/lib/sqlite/zabbix.db
+		DBUser=zabbix
+		ConfigFrequency=120
+
+	- Modificar parametros de localização do ICMP (ping):
+
+		FpingLocation=/sbin/fping
+
+	- Configurar parametros de log:
+
+		LogFile=/tmp/zabbix_proxy.log 	(Caminho para o arquivo de log do Zabbix Server)
+		LogFileSize=1					(Tamanho do arquivo de log)
+		DebugLevel=3					(Nível de detalhamento do log)
+
+	- Configurar parametros de comunicação
+
+		Hostname=proxy_filial
+		Server=192.168.1.200			(IP do Zabbix Server)
+		ListenPort=10053
+
+	- Para localizar o fping:
+
+		which fping
+
+### Iniciando o Zabbix Proxy ###
+
+	- Copiar arquivo zabbix_server.service para a pasta system
+
+		cp /arquivos/zabbix_server.service /etc/systemd/system/zabbix_proxy.service
+
+	- Realizar modificações no arquivo para se adequar ao Zabbix Proxy
+
+		sed -i 's/server/proxy/g' /etc/systemd/system/zabbix_proxy.service
+		sed -i 's/Server/Proxy/g' /etc/systemd/system/zabbix_proxy.service
+
+	- Aplicar as devidas permissões
+
+		chown root:root /etc/systemd/system/zabbix_*
+		chmod 644 /etc/systemd/system/zabbix_*
+
+	- Habilitar processo na inícialização do sistema
+
+		systemctl enable zabbix_proxy
+
+	- Iniciar o processo
+
+		systemctl start zabbix_proxy
+
+	- Caso queira parar o processo
+
+		systemctl stop zabbix_proxy
+
+	- Caso queira verificar o processo
+
+		systemctl status zabbix_proxy
+
+### Conferindo o arquivo de Log ###
+
+	- Conferir o arquivo de log em tempo real
+
+		tail -f /tmp/zabbix_proxy.log
