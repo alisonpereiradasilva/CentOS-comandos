@@ -1,0 +1,219 @@
+Linux CentOS - instalação Zabbix
+### Desabilitando o SElinux ###
+
+	vim /etc/selinux/config
+
+	- Modificar para: SELINUX=disabled
+
+	setenforce 0
+
+### Desabilitando o Firewall ###
+
+	systemctl stop firewalld
+	systemctl disable firewalld
+
+### Baixando e Instalando o Repositorio BASE do CentOS 7 ###
+
+	rpm -Uvh http://mirror.centos.org/centos-7/7/os/x86_64/Packages/centos-release-7-4.1708.el7.centos.x86_64.rpm
+
+### Baixando e Instalando o Repositorio EPEL do CentOS 7 ###
+
+	rpm -Uvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+
+### Atualizando o Sistema Operacional ###
+
+	yum update
+
+### Instalando Pré-requisitos de SNMP ###
+
+	yum -y install net-snmp net-snmp-devel net-snmp-utils
+
+### Instalando Pré-requisitos de Desenvolvimento ###
+
+	yum -y install zlib-devel glibc-devel libcurl-devel automake pkgconfig ncurses libidn2-devel openssl-devel rpm-devel
+
+### Instalando Pré-requisitos específicos do CentOS 7 ###
+
+	yum -y install mlocate OpenIPMI OpenIPMI-libs OpenIPMI-devel libssh2 make fping gcc libevent-devel
+
+### Instalando Pré-requisitos do Jabber ###
+
+	yum -y install iksemel iksemel-devel libxml2-devel libxml2
+
+### Instalando Pré-requisitos da Interface Web ###
+
+	yum -y install php php-bcmath php-gd php-mbstring php-xml php-ldap httpd php-curl php-mysql
+
+### Instalando Pré-requisitos do Banco de Dados MariaDB (MySQL) ###
+
+	yum -y install mariadb-devel mariadb mariadb-server
+
+### Instalando o Zabbix ###
+
+	- Verificar se o usuário existe
+
+		id zabbix
+
+	- Se não existir, criar usuário
+
+		useradd zabbix -s /bin/false
+
+	- Criar e acessar pasta onde ficarão os arquivos baixados
+
+		mkdir /arquivos
+
+		cd /arquivos
+
+	- Baixar última versão do Zabbix
+
+		wget https://ufpr.dl.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.4.1/zabbix-3.4.1.tar.gz
+
+	- Descompactar o código-fonte
+
+		tar zxvf /arquivos/zabbix-3.4.1.tar.gz
+
+	- Acessar pasta criada
+
+		cd /arquivos/zabbix-3.4.1/
+
+	- Instalar o Zabbix 3 (Servidor e Agente)
+
+		./configure --enable-server --enable-agent --with-mysql --with-net-snmp --with-jabber=/usr --with-libcurl --with-libxml2 --with-openipmi
+
+		make install
+
+### Inicializando automaticamente o MySQL e o Apache ###
+
+	- MySQL
+
+		systemctl start mariadb
+		systemctl enable mariadb
+
+	- Apache
+
+		systemctl start httpd
+		systemctl enable httpd
+
+### Criando o Banco de Dados do Zabbix 3 ###
+
+	- Criar o Banco de Dados
+
+		echo "create database zabbix character set utf8;" | mysql -uroot -p
+
+	- Garantir privilégios
+
+		echo "GRANT ALL PRIVILEGES ON zabbix.* TO zabbix@localhost IDENTIFIED BY '123456' WITH GRANT OPTION;" | mysql -uroot -p
+
+	- Criar tabelas
+
+		cat /arquivos/zabbix-3.4.1/database/mysql/schema.sql | mysql -u zabbix -p123456 zabbix
+
+		cat /arquivos/zabbix-3.4.1/database/mysql/images.sql | mysql -u zabbix -p123456 zabbix
+
+		cat /arquivos/zabbix-3.4.1/database/mysql/data.sql | mysql -u zabbix -p123456 zabbix
+
+### Configurando o Servidor Zabbix 3 ###
+
+	- Local do arquivo de configuração: /usr/local/etc/zabbix_server.conf
+
+	- Realizar o backup do arquivo de configuração original
+
+		cp /usr/local/etc/zabbix_server.conf /usr/local/etc/zabbix_server.conf.ori
+
+	- Acessar arquivo de configuração
+
+		vim /usr/local/etc/zabbix_server.conf
+
+	- Modificar parametros de conexão com Banco de Dados:
+
+		DBUser=zabbix
+		DBPassword=123456
+		DBName=zabbix
+		CacheSize=32M
+
+	- Modificar parametros de localização do ICMP (ping):
+
+		FpingLocation=/sbin/fping
+
+	- Configurar parametros de log:
+
+		LogFile=/tmp/zabbix_server.log 	(Caminho para o arquivo de log do Zabbix Server)
+		LogFileSize=1					(Tamanho do arquivo de log)
+		DebugLevel=3					(Nível de detalhamento do log)
+
+	- Para localizar o fping:
+
+		which fping
+
+### Iniciando o Zabbix Server ###
+
+	- Copiar arquivo zabbix_server.service para a pasta system
+
+		cp zabbix_server.service /etc/systemd/system/
+
+	- Dar as devidas permissões
+
+		chown root:root /etc/systemd/system/zabbix_server.service
+		chmod 644 /etc/systemd/system/zabbix_server.service
+
+	- Habilitar processo na inícialização do sistema
+
+		systemctl enable zabbix_server
+
+	- Iniciar o processo
+
+		systemctl start zabbix_server
+
+	- Caso queira parar o processo
+
+		systemctl stop zabbix_server
+
+	- Caso queira verificar o processo
+
+		systemctl status zabbix_server
+
+### Configurando o Zabbix WEB ###
+
+	- Criar arquivo php.ini de backup
+
+		cp /etc/php.ini /etc/php.ini.ori
+
+	- Acessar arquivo php.ini e alterar os seguintes parametros:
+
+		max_execution_time=300
+		max_input_time=300
+		date.timezone=America/Sao_Paulo
+		post_max_size=16M
+
+	- Reiniciar o Apache
+
+		systemctl restart httpd
+
+	- Criar pasta para receber os arquivos do Zabbix Web
+
+		mkdir /var/www/html/zabbix/
+
+	- Copiar arquivos e aplicar as devidas permissões
+
+		cp -r /arquivos/zabbix-3.4.1/frontends/php/* /var/www/html/zabbix/
+		chown -R apache:apache /var/www/html/zabbix/
+
+	- Acessar interface web: 192.168.1.200/zabbix
+
+		Next Step
+		Next Step (caso esteja tudo OK)
+		Next Step (preencher a senha do usuário zabbix [123456])
+		Next Step
+		Next Step
+		Finish
+
+	- Acessar o Zabbix
+
+		User: admin
+		Pass: zabbix
+
+### Conferindo o arquivo de Log ###
+
+	- Conferir o arquivo de log em tempo real
+
+		tail -f /tmp/zabbix_server.log
