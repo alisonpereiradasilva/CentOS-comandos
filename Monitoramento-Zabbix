@@ -1,0 +1,29 @@
+Monitoramento Zabbix - Linux CentOS
+### Gerar arquivo contadores.txt (no Windows) ###
+
+	C:\> typeperf -qx -o contadores.txt
+
+### Conferir se o Zabbix está buscando o contador (no Zabbix Server) ###
+
+	zabbix_get -s <ip_windows> -k perfcounter[“nome_do_contador”]
+
+Exemplo 01 - Pegar porcentagem livre de espaço em disco:
+
+	zabbix_get -s 192.168.1.9 -k perf_counter["\LogicalDisk(C:)\% Free Space"]
+
+Exemplo 02 - Pegar espaço livre em MB no disco:
+
+	zabbix_get -s 192.168.1.9 -k perf_counter["\LogicalDisk(C:)\Free Megabytes"]
+
+### Solucionar o problema linguistico do perf_counter ###
+
+	Acessar o regedit.
+	Procurar a pasta: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Perflib\
+	Pasta 009 estão as descrições em Inglês.
+	Pasta 0016 estão as descrições em Português (PT_Br).
+
+	Dessa forma:
+
+		perf_counter["\LogicalDisk(C:)\% Free Space"] é igual a perf_counter["\236(C:)\408"]
+
+	Porém a segunda maneira, funciona em qualquer idioma do Windows, não necessitando criar vários itens iguais.
