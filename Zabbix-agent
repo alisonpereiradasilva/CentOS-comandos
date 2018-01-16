@@ -1,0 +1,42 @@
+Instalação Zabbix agent linux - CentOS
+### Instalando o Zabbix Agente no Linux ###
+
+	- Instalar os mesmos pré-requisitos do Zabbix Server, com exceção das dependências do MySQL, Apache e PHP.
+
+	- Instalar o Zabbix Agente (no caso do servidor não necessita deste comando, pois na hora de compilar já colocamos o parâmetro: --enable-agent)
+
+		./configure --enable-agent --with-libcurl --with-openipmi
+
+	- Copiar o arquivo zabbix-agentd.service para a pasta system
+
+		cp zabbix_agentd.service /etc/systemd/system/
+
+	- Aplicar as devidas permissões e adicionar o serviço na inicialização
+
+		chown root:root /etc/systemd/system/zabbix_agentd.service
+		chmod 644 /etc/systemd/system/zabbix_agentd.service
+		systemctl enable zabbix_agentd
+
+	- Acessar arquivo de configuração
+
+		vim /usr/local/etc/zabbix_agentd.conf
+
+	- Editar arquivo de configuração
+
+		LogFile=/tmp/zabbix_agentd.log 	(Caminho para o arquivo de log do Zabbix Agente)
+		LogFileSize=1					(Tamanho do arquivo de log)
+		DebugLevel=3					(Nível de detalhamento do log)
+		Server=127.0.0.1 				(IP do Servidor ou Proxy Zabbix, dependendo do seu ambiente)
+		Hostname=Zabbix server 			(Nome pelo qual o host será reconhecido pelo Zabbix. O nome cadastrado deve ser o mesmo nome utilizado ao cadastrar o host na interface gráfica)
+		
+	- Iniciar Zabbix Agente
+
+		systemctl start zabbix_agentd
+
+	- Habilitar ou cadastrar o host na inferface gráfica
+
+### Conferindo o arquivo de Log ###
+
+	- Conferir o arquivo de log em tempo real
+
+		tail -f /tmp/zabbix_agentd.log
