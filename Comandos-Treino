@@ -1,0 +1,148 @@
+Zabbix - TreinamentoLinux Zabbix - CentOS 7
+
+1 SELINUX
+Desabilitar - /etc/selinux/config
+	comando: setenforce 0
+
+2 Pre-requisitos de parada de firewall
+systemctl stop firewalld
+system disable firewalld
+
+3 instalacao de repositorios
+Base e o EPEL (RPM)
+
+4 Update Sistema
+
+5 baixar pacotes protocolo SNMP
+
+6 Baixar pre requisitos de desenvolvimento
+
+7 Baixar pre requisitos especificos CentOS 7
+
+8 Baixar Pre requisitos do Jabber
+
+9 Baixar pacotes interface WEB PHP
+
+10 Baixar pacotes banco de dados MySQL MariaDB
+
+11 Verificar usuario zabbix
+	comando: id zabbix
+	comando add: useradd (nome) -s /bin/false
+
+12 Criar pasta de instalacao e RPMs
+	comando: mnkdir /arquivos
+	acessa: cd /arquivos
+
+13 validar baixados
+	comando: ls -lah
+
+14 descompactar zabbix baixado
+	comando: tar zxvf nomepacote
+	comando: cd nomepadote - para acessar o pacote descomprimido
+
+15 Compilar o Zabbix
+	comando: ./configure
+
+16 Banco de dados
+	comando: systemctl start/atop mariadb
+	comando: systemctl enable mariadb (iniciar com o SO)
+
+17 Apache
+	comando: systemctl start httpd
+	comando: systemctl enable httpd (iniciar com o SO)
+
+18 consultando DataBases
+	comando: mysql -u root -p
+		entra no ambiente...
+			comando: show databases;
+			comando: show tables;
+			comando: exit
+
+19 arquivo da base de dados
+	local SCHEMA: .../zabbix/databases/mysql/schema.sql
+	local IMAGES: .../...
+	local data: .../...
+
+20  Configurar Servidor
+	/usr/etc/zabbix-server.conf
+	DBName= zabbix (banco de dados)
+	DBUser= zabbix
+	Cashesize = bites
+	Fping = validar o local correto
+
+21 binario do FPing
+	wich fping
+	Fping = validar o local correto
+
+22 Logfile
+	validar o local
+	LogafileSize=1
+	DebugLevel=3 Caso erro grave subir 4 ou 5 (cuidado pode pesar)
+
+23 Copiar o arquivo Zabbix server
+	Validar o arquivo
+	cp zabbix_server.service /etc/system/System
+	Dar permissoes no arquivo
+	chwon root:root /etc/systemd/system/zabbix_server.service
+	chmod 644 /etc/systemd/system/zabbix_server.service
+
+**************************************************************************
+24 Iniciando o zabbix_server
+	comando: systemctl enable zabbix_server
+			 systemctl start zabbix_server
+	comando: systemctl status zabbix_server
+
+**************************************************************************
+
+25 BKP arquivos
+	comando: cp /etc/php.ini /etc/php.ini.(nome)
+
+26 PHP.ini
+	comando: nano /etc/php.ini
+	MaxExecutionTime=300
+	MaxInputTime=300
+	DateTimeZone=America/SaoPaulo
+	Post_Max_Size=16
+
+27 Restart Apache
+    comando: systemctl Restart httpd
+
+28 Criar zabbix WEB
+    comando: mnkdir /var/www/zabbix
+    copiar arqiuvos
+    comando: cp -r /arquivos/zabbix_3.4.1/frontends/php/* /var/www/tml/zabbix
+    permissao: chown -r apache:apache /var/www/html/zabbix
+    validar: ls -lah /var/www/html/zabbix
+
+29 Acessar via navegador
+    IP/zabbix
+
+30 validar o log em tempo real
+    tail -f /log/zabbix_server.log
+
+AGENTE Zabbix
+
+1 zabbix_agentd.service
+	comando: cp local para /etc/systemd/system
+			 chown root:root /etc/systemd/system/zabbix_agentd.service
+			 chmod 644 	/etc/systemd/system/zabbix_agentd.service		 
+			 systemctl enable zabbix_agentd
+
+2 Arquivo de configuracao
+	comando BKP: cp /usr/local/etc/zabbix_agentd.conf  /usr/local/etc/zabbix_agentd.conf.nome
+	comando: nano /usr/local/etc/zabbix_agentd.conf
+	Logfile
+	LogafileSize
+	DebugLevel=3
+	Server: Ip do Proxy ou para o Servidor interno
+	
+
+
+
+
+
+
+
+
+
+
